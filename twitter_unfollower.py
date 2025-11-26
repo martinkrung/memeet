@@ -54,8 +54,32 @@ class TwitterUnfollower:
     def get_authenticated_user(self):
         """Get the authenticated user's information."""
         if not self.me:
-            self.me = self.client.get_me()
-            print(f"\n✓ Authenticated as: @{self.me.data.username}")
+            try:
+                self.me = self.client.get_me()
+                print(f"\n✓ Authenticated as: @{self.me.data.username}")
+            except tweepy.errors.Forbidden as e:
+                print(f"\n✗ Error: 403 Forbidden - {e}")
+                print("\n" + "="*70)
+                print("COMMON ISSUE: Your app must be attached to a Project!")
+                print("="*70)
+                print("\nHow to fix:")
+                print("1. Go to https://developer.twitter.com/en/portal/dashboard")
+                print("2. Click 'Projects & Apps' → Create a Project (or use existing)")
+                print("3. Add your app to the project (or create new app in project)")
+                print("4. IMPORTANT: Regenerate your Access Token & Secret")
+                print("5. Update your .env file with the new tokens")
+                print("6. Verify app permissions are set to 'Read and write'")
+                print("\nSee README.md for detailed setup instructions.")
+                print("="*70)
+                raise
+            except tweepy.errors.Unauthorized as e:
+                print(f"\n✗ Error: 401 Unauthorized - {e}")
+                print("\nYour API credentials are invalid or incorrect.")
+                print("Please check your .env file and make sure:")
+                print("- All credentials are correct (no typos)")
+                print("- No extra spaces or quotes around values")
+                print("- Tokens were regenerated after adding app to Project")
+                raise
         return self.me
 
     def load_cache(self):
@@ -158,9 +182,24 @@ class TwitterUnfollower:
                     break
                 pagination_token = response.meta['next_token']
 
+            except tweepy.errors.Forbidden as e:
+                print(f"\n✗ Error: 403 Forbidden - {e}")
+                print("\n" + "="*70)
+                print("COMMON ISSUE: Your app must be attached to a Project!")
+                print("="*70)
+                print("\nHow to fix:")
+                print("1. Go to https://developer.twitter.com/en/portal/dashboard")
+                print("2. Click 'Projects & Apps' → Create a Project (or use existing)")
+                print("3. Add your app to the project (or create new app in project)")
+                print("4. IMPORTANT: Regenerate your Access Token & Secret")
+                print("5. Update your .env file with the new tokens")
+                print("6. Verify app permissions are set to 'Read and write'")
+                print("\nSee README.md for detailed setup instructions.")
+                print("="*70)
+                raise
             except Exception as e:
                 print(f"\n✗ Error fetching following: {e}")
-                break
+                raise
 
         print(f"\n✓ Fetched {len(followers_data)} accounts")
 

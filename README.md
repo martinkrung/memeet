@@ -52,23 +52,47 @@ A Python command-line tool to help you unfollow inactive Twitter accounts based 
 
 4. **Set up Twitter API credentials**:
 
+   > **IMPORTANT**: Your app must be attached to a Project in the Twitter Developer Portal to use API v2.
+
    a. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
 
-   b. Create a new app (or use an existing one)
+   b. **Create a Project** (required for API v2):
+      - Click "Projects & Apps" in the left sidebar
+      - Click "+ Create Project" (or use an existing project)
+      - Give it a name (e.g., "Twitter Unfollower")
+      - Select use case and fill in the required details
+      - Click "Next" until complete
 
-   c. Generate the following credentials:
-      - API Key (Consumer Key)
-      - API Secret (Consumer Secret)
-      - Access Token
-      - Access Token Secret
-      - Bearer Token
+   c. **Create or Add an App to your Project**:
+      - Inside your project, click "+ Add App" or "Create new app"
+      - Give your app a name (e.g., "Unfollower CLI")
+      - Save the API Key and API Secret that appear (you'll need these!)
 
-   d. Copy `.env.example` to `.env`:
+   d. **Configure App Permissions**:
+      - Go to your app's settings (click the gear icon next to your app name)
+      - Click "User authentication settings" → "Set up"
+      - Enable "OAuth 1.0a"
+      - Set App permissions to **"Read and write"** (required to unfollow)
+      - Fill in required fields (you can use `http://localhost:3000` for callback URL if needed)
+      - Click "Save"
+
+   e. **Generate Access Tokens**:
+      - Go to the "Keys and tokens" tab for your app
+      - Under "Authentication Tokens", click "Generate" for Access Token and Secret
+      - **IMPORTANT**: Save these immediately - you won't see them again!
+      - You should now have:
+        - API Key (Consumer Key)
+        - API Secret (Consumer Secret)
+        - Access Token
+        - Access Token Secret
+        - Bearer Token (shown at top of page)
+
+   f. **Copy credentials to .env**:
       ```bash
       cp .env.example .env
       ```
 
-   e. Edit `.env` and add your credentials:
+   g. **Edit `.env` and add your credentials**:
       ```
       TWITTER_API_KEY=your_api_key_here
       TWITTER_API_SECRET=your_api_secret_here
@@ -76,6 +100,8 @@ A Python command-line tool to help you unfollow inactive Twitter accounts based 
       TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret_here
       TWITTER_BEARER_TOKEN=your_bearer_token_here
       ```
+
+      > **Note**: Remove any quotes or extra spaces around the values
 
 ## Usage
 
@@ -219,6 +245,20 @@ Enter your choice (1-3): 2
 ```
 
 ## Troubleshooting
+
+### "403 Forbidden" or "App must be attached to a Project" error
+
+This is the most common error! It means your Twitter app is not properly set up:
+
+**Solution**:
+1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+2. Click "Projects & Apps" in the sidebar
+3. **Create a Project** if you don't have one
+4. **Add your app to the project** (or create a new app inside the project)
+5. **Important**: After adding the app to a project, you MUST regenerate your Access Token and Secret
+6. Go to "Keys and tokens" → Regenerate "Access Token and Secret"
+7. Update your `.env` file with the new tokens
+8. Also verify that App permissions are set to "Read and write"
 
 ### "Missing Twitter API credentials" error
 
