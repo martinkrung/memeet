@@ -14,26 +14,40 @@ A Python command-line tool to help you unfollow inactive Twitter accounts based 
 ## Prerequisites
 
 - Python 3.7 or higher
+- [uv](https://github.com/astral-sh/uv) - Fast Python package installer
 - Twitter Developer Account with API access
 - Twitter API credentials (API Key, API Secret, Access Token, Access Token Secret, Bearer Token)
 
 ## Installation
 
-1. **Clone the repository**:
+1. **Install uv** (if not already installed):
+   ```bash
+   # On macOS and Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+
+   # On Windows
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+   # Or via pip
+   pip install uv
+   ```
+
+2. **Clone the repository**:
    ```bash
    git clone <repository-url>
    cd memeet
    ```
 
-2. **Create a virtual environment** (recommended):
+3. **Install dependencies with uv**:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv pip install -r requirements.txt
    ```
 
-3. **Install dependencies**:
+   Or if you want uv to manage the virtual environment automatically:
    ```bash
-   pip install -r requirements.txt
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   uv pip install -r requirements.txt
    ```
 
 4. **Set up Twitter API credentials**:
@@ -69,7 +83,11 @@ A Python command-line tool to help you unfollow inactive Twitter accounts based 
 
 Find accounts that haven't tweeted in 2 years (730 days):
 ```bash
+# If using uv-managed venv
 python twitter_unfollower.py
+
+# Or run directly with uv
+uv run twitter_unfollower.py
 ```
 
 ### Custom Inactivity Period
