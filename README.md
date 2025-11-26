@@ -2,6 +2,13 @@
 
 A Python command-line tool to help you unfollow inactive Twitter accounts based on their last tweet date.
 
+> **⚠️ IMPORTANT: Requires Paid Twitter API Access**
+>
+> This tool requires **Twitter API Basic tier or higher** (~$100/month minimum).
+> The FREE tier does NOT have access to read follows or unfollow users.
+>
+> Check your API tier at: https://developer.twitter.com/en/portal/dashboard
+
 ## Features
 
 - ✨ **Configurable Inactivity Period**: Set any custom time period (default: 2 years)
@@ -15,6 +22,9 @@ A Python command-line tool to help you unfollow inactive Twitter accounts based 
 
 - Python 3.7 or higher
 - [uv](https://github.com/astral-sh/uv) - Fast Python package installer
+- **Twitter API Basic Tier or higher** (~$100/month minimum)
+  - ⚠️ **The Free tier will NOT work** - it doesn't have access to read follows or unfollow users
+  - Requires endpoints: `GET /2/users/:id/following` and `POST /1.1/friendships/destroy`
 - Twitter Developer Account with API access
 - Twitter API credentials (API Key, API Secret, Access Token, Access Token Secret, Bearer Token)
 
@@ -248,9 +258,22 @@ Enter your choice (1-3): 2
 
 ### "403 Forbidden" or "App must be attached to a Project" error
 
-This is the most common error! It means your Twitter app is not properly set up:
+This error has two common causes:
 
-**Solution**:
+**⚠️ MOST COMMON: You're using the Free API tier**
+
+The Twitter Free tier does NOT support reading follows or unfollowing. You need **Basic tier or higher** (~$100/month).
+
+To check your tier:
+1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+2. Look at your subscription level
+3. If it says "Free", you'll need to upgrade to Basic or higher
+4. Upgrade at: https://developer.twitter.com/en/portal/products
+
+**Alternative Cause: App not attached to a Project**
+
+If you DO have Basic tier or higher, the issue might be Project setup:
+
 1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
 2. Click "Projects & Apps" in the sidebar
 3. **Create a Project** if you don't have one
