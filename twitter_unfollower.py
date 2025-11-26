@@ -29,6 +29,26 @@ class TwitterUnfollower:
         access_token_secret = os.getenv('TWITTER_ACCESS_TOKEN_SECRET')
         bearer_token = os.getenv('TWITTER_BEARER_TOKEN')
 
+        # Debug: Print loaded credentials (masked for security)
+        print("\n" + "="*70)
+        print("DEBUG: Environment variables loaded from .env")
+        print("="*70)
+
+        def mask_value(val):
+            """Mask sensitive values, showing only first/last few chars."""
+            if not val:
+                return "❌ NOT SET"
+            if len(val) <= 10:
+                return f"✓ Set ({len(val)} chars)"
+            return f"✓ {val[:4]}...{val[-4:]} ({len(val)} chars)"
+
+        print(f"TWITTER_API_KEY:              {mask_value(api_key)}")
+        print(f"TWITTER_API_SECRET:           {mask_value(api_secret)}")
+        print(f"TWITTER_ACCESS_TOKEN:         {mask_value(access_token)}")
+        print(f"TWITTER_ACCESS_TOKEN_SECRET:  {mask_value(access_token_secret)}")
+        print(f"TWITTER_BEARER_TOKEN:         {mask_value(bearer_token)}")
+        print("="*70 + "\n")
+
         if not all([api_key, api_secret, access_token, access_token_secret]):
             raise ValueError(
                 "Missing Twitter API credentials. "
