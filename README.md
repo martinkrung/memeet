@@ -2,12 +2,30 @@
 
 A Python command-line tool to help you unfollow inactive Twitter accounts based on their last tweet date.
 
-> **⚠️ IMPORTANT: Requires Paid Twitter API Access**
->
-> This tool requires **Twitter API Basic tier or higher** (~$100/month minimum).
-> The FREE tier does NOT have access to read follows or unfollow users.
->
-> Check your API tier at: https://developer.twitter.com/en/portal/dashboard
+---
+
+# ⚠️ **DOES NOT WORK WITH FREE TWITTER API** ⚠️
+
+## This tool requires **PAID** Twitter API access ($100+/month)
+
+**The Twitter/X Free API tier does NOT work with this tool.**
+
+You need:
+- **Twitter API Basic tier** (~$100/month) **minimum**
+- OR Twitter API Pro tier (~$5,000/month)
+
+### Why Free tier doesn't work:
+- ❌ Cannot read who you follow
+- ❌ Cannot unfollow users
+- ❌ Cannot read other users' tweets
+- ✅ Can ONLY post tweets (write-only)
+
+### Check your API tier:
+Go to https://developer.twitter.com/en/portal/dashboard and look at your subscription level.
+
+If it says "Free" - **this tool will not work for you.**
+
+---
 
 ## Features
 

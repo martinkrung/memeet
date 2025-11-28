@@ -112,6 +112,62 @@ class TwitterUnfollower:
                 raise
         return self.me
 
+    def test_api_access(self):
+        """Test if the API tier supports required operations."""
+        print("\n" + "="*70)
+        print("Testing API Access Level...")
+        print("="*70)
+
+        user = self.get_authenticated_user()
+        user_id = user.data.id
+
+        # Test 1: Can we read our own tweets?
+        print("\n[Test 1/2] Testing if we can read tweets...")
+        try:
+            tweets = self.client.get_users_tweets(
+                id=user_id,
+                max_results=5,
+                tweet_fields=['created_at']
+            )
+            print("✓ SUCCESS: Can read tweets")
+        except tweepy.errors.Forbidden as e:
+            print("✗ FAILED: Cannot read tweets")
+            print("\n" + "="*70)
+            print("⚠️  API ACCESS INSUFFICIENT - You likely have FREE tier")
+            print("="*70)
+            print("\nThe Free tier does NOT support:")
+            print("  - Reading tweets")
+            print("  - Reading follows/followers")
+            print("  - Unfollowing users")
+            print("\nYou need to upgrade to Basic tier ($100/month) or higher.")
+            print("Upgrade at: https://developer.twitter.com/en/portal/products")
+            print("="*70)
+            raise ValueError("Insufficient API access. Basic tier or higher required.")
+
+        # Test 2: Can we read who we follow?
+        print("[Test 2/2] Testing if we can read following list...")
+        try:
+            following = self.client.get_users_following(
+                id=user_id,
+                max_results=5
+            )
+            print("✓ SUCCESS: Can read following list")
+        except tweepy.errors.Forbidden as e:
+            print("✗ FAILED: Cannot read following list")
+            print("\n" + "="*70)
+            print("⚠️  API ACCESS INSUFFICIENT - You likely have FREE tier")
+            print("="*70)
+            print("\nThe Free tier does NOT support reading follows/followers.")
+            print("\nYou need to upgrade to Basic tier ($100/month) or higher.")
+            print("Upgrade at: https://developer.twitter.com/en/portal/products")
+            print("="*70)
+            raise ValueError("Insufficient API access. Basic tier or higher required.")
+
+        print("\n" + "="*70)
+        print("✓ API Access Check PASSED - You have sufficient access!")
+        print("="*70)
+        return True
+
     def load_cache(self):
         """Load cached followers data if available."""
         cache_path = Path(self.CACHE_FILE)
@@ -399,6 +455,9 @@ Examples:
     try:
         unfollower = TwitterUnfollower()
         unfollower.get_authenticated_user()
+
+        # Test API access level before proceeding
+        unfollower.test_api_access()
 
         # Fetch following
         followers = unfollower.fetch_following(force_refresh=args.refresh)
