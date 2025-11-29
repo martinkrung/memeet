@@ -31,6 +31,7 @@ env/
 
 # Cache
 followers_cache.json
+unfollow_list.json
 
 # IDE
 .vscode/

@@ -242,19 +242,25 @@ class TwitterUnfollower:
                         'tweet_count': user.public_metrics.get('tweet_count', 0) if user.public_metrics else 0,
                     }
 
-                    # Get user's most recent tweet
+                    # Get user's most recent tweets (last 2)
+                    user_info['recent_tweets'] = []
                     try:
                         tweets = self.client.get_users_tweets(
                             id=user.id,
                             max_results=5,
-                            tweet_fields=['created_at'],
+                            tweet_fields=['created_at', 'text'],
                             exclude=['retweets', 'replies']  # Only original tweets
                         )
 
                         if tweets.data and len(tweets.data) > 0:
-                            # Get the most recent tweet
-                            latest_tweet = tweets.data[0]
-                            user_info['last_tweet_at'] = latest_tweet.created_at.isoformat()
+                            # Store last 2 tweets with text
+                            for tweet in tweets.data[:2]:
+                                user_info['recent_tweets'].append({
+                                    'text': tweet.text,
+                                    'created_at': tweet.created_at.isoformat()
+                                })
+                            # Keep last_tweet_at for filtering
+                            user_info['last_tweet_at'] = tweets.data[0].created_at.isoformat()
                         else:
                             user_info['last_tweet_at'] = None
                     except Exception as e:
@@ -352,56 +358,184 @@ class TwitterUnfollower:
             print(f"   ✗ Failed to unfollow @{username}: {e}")
             return False
 
+    def show_user_tweets(self, user):
+        """Display user's recent tweets."""
+        print(f"\n   📝 Recent tweets:")
+        if user.get('recent_tweets') and len(user['recent_tweets']) > 0:
+            for i, tweet in enumerate(user['recent_tweets'], 1):
+                tweet_date = datetime.fromisoformat(tweet['created_at'].replace('Z', '+00:00'))
+                days_ago = (datetime.now(timezone.utc) - tweet_date).days
+                # Truncate long tweets
+                text = tweet['text']
+                if len(text) > 100:
+                    text = text[:100] + "..."
+                print(f"      [{i}] {days_ago} days ago: {text}")
+        else:
+            print("      (No tweets found)")
+
+    def interactive_review(self, inactive_users):
+        """Interactively review users and build unfollow list."""
+        if not inactive_users:
+            print("\n✓ No inactive users found!")
+            return []
+
+        print(f"\n{'='*80}")
+        print("Review Mode: Build Unfollow List")
+        print(f"{'='*80}")
+        print("\nOptions for each account:")
+        print("  y = Mark for unfollow")
+        print("  n = Skip this account")
+        print("  a = Mark ALL remaining for unfollow")
+        print("  s = Skip all remaining and finish")
+        print("  q = Quit without saving")
+        print(f"{'='*80}\n")
+
+        to_unfollow = []
+
+        for i, user in enumerate(inactive_users, 1):
+            print(f"\n[{i}/{len(inactive_users)}] @{user['username']} ({user['name']})")
+            print(f"   └─ {user['inactivity_reason']}")
+
+            # Show last 2 tweets
+            self.show_user_tweets(user)
+
+            decision = input("\n   Decision (y/n/a/s/q): ").strip().lower()
+
+            if decision == 'q':
+                print("\n✗ Quit - discarding list")
+                return []
+            elif decision == 's':
+                print(f"\n⏩ Skipping remaining {len(inactive_users) - i} accounts")
+                break
+            elif decision == 'a':
+                # Mark all remaining
+                print(f"\n✓ Marking all remaining {len(inactive_users) - i + 1} accounts for unfollow")
+                to_unfollow.extend(inactive_users[i-1:])
+                break
+            elif decision == 'y':
+                to_unfollow.append(user)
+                print(f"   ✓ Marked for unfollow ({len(to_unfollow)} total)")
+            else:
+                print("   ↷ Skipped")
+
+        return to_unfollow
+
+    def save_unfollow_list(self, to_unfollow, filename="unfollow_list.json"):
+        """Save unfollow list to JSON file."""
+        data = {
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'total_count': len(to_unfollow),
+            'accounts': [
+                {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'name': user['name'],
+                    'inactivity_reason': user['inactivity_reason'],
+                    'last_tweet_at': user.get('last_tweet_at'),
+                    'recent_tweets': user.get('recent_tweets', [])
+                }
+                for user in to_unfollow
+            ]
+        }
+
+        try:
+            with open(filename, 'w') as f:
+                json.dump(data, f, indent=2)
+            print(f"\n✓ Unfollow list saved to: {filename}")
+            print(f"   You can edit this file and execute it later with:")
+            print(f"   python twitter_unfollower.py --execute {filename}")
+            return True
+        except Exception as e:
+            print(f"\n✗ Error saving unfollow list: {e}")
+            return False
+
+    def execute_unfollow_list(self, filename="unfollow_list.json"):
+        """Execute unfollows from a saved JSON file."""
+        try:
+            with open(filename, 'r') as f:
+                data = json.load(f)
+
+            accounts = data.get('accounts', [])
+            if not accounts:
+                print("\n⚠ No accounts in the unfollow list")
+                return
+
+            print(f"\n{'='*80}")
+            print(f"Loaded unfollow list: {len(accounts)} accounts")
+            print(f"Created: {data.get('created_at', 'unknown')}")
+            print(f"{'='*80}\n")
+
+            confirm = input(f"Execute unfollows for {len(accounts)} accounts? (yes/no): ").strip().lower()
+            if confirm != 'yes':
+                print("\n✗ Cancelled")
+                return
+
+            print("\n⏳ Executing unfollows...")
+            success_count = 0
+            failed = []
+
+            for account in accounts:
+                if self.unfollow_user(account['id'], account['username']):
+                    success_count += 1
+                else:
+                    failed.append(account['username'])
+
+            print(f"\n{'='*80}")
+            print(f"✓ Successfully unfollowed {success_count}/{len(accounts)} accounts")
+            if failed:
+                print(f"✗ Failed to unfollow {len(failed)} accounts: {', '.join(failed)}")
+            print(f"{'='*80}")
+
+        except FileNotFoundError:
+            print(f"\n✗ Error: File not found: {filename}")
+        except Exception as e:
+            print(f"\n✗ Error executing unfollow list: {e}")
+
     def interactive_unfollow(self, inactive_users):
-        """Interactively unfollow users (one by one or all at once)."""
+        """Main interactive unfollow workflow."""
         if not inactive_users:
             print("\n✓ No inactive users to unfollow!")
             return
 
+        # Review and build unfollow list
+        to_unfollow = self.interactive_review(inactive_users)
+
+        if not to_unfollow:
+            print("\n✗ No accounts marked for unfollowing")
+            return
+
+        # Summary
         print(f"\n{'='*80}")
-        print("Unfollow Options:")
+        print(f"Summary: {len(to_unfollow)} accounts marked for unfollow")
         print(f"{'='*80}")
-        print("1. Unfollow all at once")
-        print("2. Unfollow one by one (ask for each)")
+        for user in to_unfollow:
+            print(f"  • @{user['username']} - {user['inactivity_reason']}")
+
+        # Execute or save
+        print(f"\n{'='*80}")
+        print("What would you like to do?")
+        print(f"{'='*80}")
+        print("1. Execute unfollows NOW")
+        print("2. Save to JSON file (review/edit later)")
         print("3. Cancel")
 
         choice = input("\nEnter your choice (1-3): ").strip()
 
         if choice == '1':
-            # Unfollow all
-            confirm = input(f"\n⚠ Are you sure you want to unfollow ALL {len(inactive_users)} accounts? (yes/no): ").strip().lower()
+            # Execute now
+            confirm = input(f"\n⚠ Execute unfollows for {len(to_unfollow)} accounts? (yes/no): ").strip().lower()
             if confirm == 'yes':
-                print("\n⏳ Unfollowing all accounts...")
+                print("\n⏳ Executing unfollows...")
                 success_count = 0
-                for user in inactive_users:
+                for user in to_unfollow:
                     if self.unfollow_user(user['id'], user['username']):
                         success_count += 1
-                print(f"\n✓ Successfully unfollowed {success_count}/{len(inactive_users)} accounts")
+                print(f"\n✓ Successfully unfollowed {success_count}/{len(to_unfollow)} accounts")
             else:
                 print("\n✗ Cancelled")
-
         elif choice == '2':
-            # Unfollow one by one
-            print("\n⏳ Starting one-by-one unfollowing...")
-            success_count = 0
-
-            for i, user in enumerate(inactive_users, 1):
-                print(f"\n[{i}/{len(inactive_users)}] @{user['username']} ({user['name']})")
-                print(f"   {user['inactivity_reason']}")
-
-                decision = input("   Unfollow? (y/n/q to quit): ").strip().lower()
-
-                if decision == 'q':
-                    print("\n✗ Stopped unfollowing")
-                    break
-                elif decision == 'y':
-                    if self.unfollow_user(user['id'], user['username']):
-                        success_count += 1
-                else:
-                    print("   ↷ Skipped")
-
-            print(f"\n✓ Unfollowed {success_count} accounts")
-
+            # Save to file
+            self.save_unfollow_list(to_unfollow)
         else:
             print("\n✗ Cancelled")
 
@@ -424,6 +558,9 @@ Examples:
 
   # Just list inactive accounts without unfollowing
   python twitter_unfollower.py --days 730 --list-only
+
+  # Execute unfollows from a saved JSON file
+  python twitter_unfollower.py --execute unfollow_list.json
         """
     )
 
@@ -446,6 +583,13 @@ Examples:
         help='Only list inactive accounts without unfollowing'
     )
 
+    parser.add_argument(
+        '--execute',
+        type=str,
+        metavar='FILE',
+        help='Execute unfollows from a saved JSON file'
+    )
+
     args = parser.parse_args()
 
     print("╔═══════════════════════════════════════════════════════════════╗")
@@ -454,6 +598,14 @@ Examples:
 
     try:
         unfollower = TwitterUnfollower()
+
+        # If --execute flag is provided, execute from file and exit
+        if args.execute:
+            unfollower.get_authenticated_user()
+            unfollower.execute_unfollow_list(args.execute)
+            return
+
+        # Normal flow
         unfollower.get_authenticated_user()
 
         # Test API access level before proceeding
