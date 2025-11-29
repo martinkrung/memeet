@@ -200,6 +200,9 @@ class TwitterUnfollower:
         if not force_refresh:
             cached = self.load_cache()
             if cached:
+                # Show example user from cache
+                if cached:
+                    self.show_example_user(cached[0])
                 return cached
 
         user = self.get_authenticated_user()
@@ -308,7 +311,48 @@ class TwitterUnfollower:
         # Save to cache
         self.save_cache(followers_data)
 
+        # Show example user with all properties
+        if followers_data:
+            self.show_example_user(followers_data[0])
+
         return followers_data
+
+    def show_example_user(self, user):
+        """Display an example user with all available properties."""
+        print("\n" + "="*70)
+        print("EXAMPLE USER DATA - All Available Properties")
+        print("="*70)
+        print("\nThis shows what data you can filter/search on:\n")
+
+        # Format the user data nicely
+        print(f"📊 User ID:           {user.get('id')}")
+        print(f"👤 Username:          @{user.get('username')}")
+        print(f"📝 Name:              {user.get('name')}")
+        print(f"📅 Account Created:   {user.get('created_at')}")
+        print(f"👥 Followers:         {user.get('followers_count'):,}")
+        print(f"➡️  Following:         {user.get('following_count'):,}")
+        print(f"📱 Total Tweets:      {user.get('tweet_count'):,}")
+
+        if user.get('last_tweet_at'):
+            last_tweet_date = datetime.fromisoformat(user['last_tweet_at'].replace('Z', '+00:00'))
+            days_ago = (datetime.now(timezone.utc) - last_tweet_date).days
+            print(f"🕒 Last Tweet:        {user.get('last_tweet_at')} ({days_ago} days ago)")
+        else:
+            print(f"🕒 Last Tweet:        None found")
+
+        print(f"\n📝 Recent Tweets ({len(user.get('recent_tweets', []))}):")
+        if user.get('recent_tweets'):
+            for i, tweet in enumerate(user.get('recent_tweets', []), 1):
+                tweet_date = datetime.fromisoformat(tweet['created_at'].replace('Z', '+00:00'))
+                days_ago = (datetime.now(timezone.utc) - tweet_date).days
+                text = tweet['text'][:80] + "..." if len(tweet['text']) > 80 else tweet['text']
+                print(f"   [{i}] {days_ago} days ago: {text}")
+        else:
+            print("   (No recent tweets)")
+
+        print("\n" + "="*70)
+        print("These properties are available for filtering and review")
+        print("="*70 + "\n")
 
     def filter_inactive_users(self, followers, inactive_days):
         """Filter users who haven't tweeted in the specified number of days."""
